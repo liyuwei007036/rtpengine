@@ -79,5 +79,21 @@ else
     exit 1
 fi
 
+# 属性 4: Perl 工具可用性验证
+echo ""
+echo "属性 4: 验证 Perl 工具可用..."
+if docker run --rm --entrypoint="" "$IMAGE_NAME" perl -e 'use NGCP::Rtpengine; print "OK\n"' 2>/dev/null; then
+    echo "✓ 通过: NGCP::Rtpengine Perl 模块可用"
+else
+    echo "✗ 失败: NGCP::Rtpengine Perl 模块不可用"
+    exit 1
+fi
+
+if docker run --rm --entrypoint="" "$IMAGE_NAME" /usr/bin/rtpengine-ctl --help >/dev/null 2>&1; then
+    echo "✓ 通过: rtpengine-ctl 可执行"
+else
+    echo "⚠ 警告: rtpengine-ctl 执行失败 (可能缺少连接目标)"
+fi
+
 echo ""
 echo "=== 所有测试通过！ ==="

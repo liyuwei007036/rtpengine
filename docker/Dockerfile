@@ -9,6 +9,10 @@ FROM debian:bookworm AS builder
 
 ENV DEBIAN_FRONTEND=noninteractive
 
+# 配置中国镜像源 (阿里云)
+RUN sed -i 's|deb.debian.org|mirrors.aliyun.com|g' /etc/apt/sources.list.d/debian.sources && \
+    sed -i 's|security.debian.org|mirrors.aliyun.com/debian-security|g' /etc/apt/sources.list.d/debian.sources
+
 # 安装构建依赖
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
@@ -60,6 +64,10 @@ FROM debian:bookworm-slim AS runtime
 
 ENV DEBIAN_FRONTEND=noninteractive
 
+# 配置中国镜像源 (阿里云)
+RUN sed -i 's|deb.debian.org|mirrors.aliyun.com|g' /etc/apt/sources.list.d/debian.sources && \
+    sed -i 's|security.debian.org|mirrors.aliyun.com/debian-security|g' /etc/apt/sources.list.d/debian.sources
+
 # 安装运行时依赖
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
@@ -91,6 +99,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libwebsockets19 \
     libxtables12 \
     zlib1g \
+    perl \
+    libconfig-tiny-perl \
+    libbencode-perl \
+    libio-socket-inet6-perl \
+    libsocket6-perl \
+    libjson-perl \
+    libwww-perl \
     && rm -rf /var/lib/apt/lists/*
 
 # 创建 rtpengine 用户和组
@@ -105,6 +120,9 @@ COPY --from=builder /usr/src/rtpengine/daemon/rtpengine /usr/bin/rtpengine
 COPY --from=builder /usr/src/rtpengine/recording-daemon/rtpengine-recording /usr/bin/rtpengine-recording
 COPY --from=builder /usr/src/rtpengine/utils/rtpengine-ctl /usr/bin/rtpengine-ctl
 COPY --from=builder /usr/src/rtpengine/utils/rtpengine-ng-client /usr/bin/rtpengine-ng-client
+
+# 复制 Perl 模块 (rtpengine-ctl 和 rtpengine-ng-client 依赖)
+COPY --from=builder /usr/src/rtpengine/perl/NGCP /usr/share/perl5/NGCP
 
 # 复制配置文件和入口脚本
 COPY docker/rtpengine.conf /etc/rtpengine/rtpengine.conf

@@ -1,0 +1,42 @@
+# Git
+.git
+.gitignore
+.gitreview
+.github
+
+# Documentation (保留 docker/README.md)
+docs/
+README.md
+
+# Build artifacts (仅排除根目录下的)
+config.mk
+
+# IDE and editor files
+.*.sw?
+.vscode/
+.idea/
+*.sublime-*
+
+# Test files
+t/
+tests/
+fixtures/
+
+# Debian packaging
+debian/
+
+# Other packaging
+el/
+pkg/
+
+# Kernel module (not needed in container)
+kernel-module/
+
+# Kiro specs
+.kiro/
+
+# Travis CI
+.travis.yml
+.readthedocs.yaml
+.shellcheckrc
+.mailmap

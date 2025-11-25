@@ -78,3 +78,13 @@
 2. WHEN the container runs THEN the rtpengine process SHALL have minimal required capabilities (NET_ADMIN for network operations)
 3. WHEN log files are written THEN the rtpengine user SHALL have write permissions to the log directory
 
+### Requirement 7
+
+**User Story:** As a developer in China, I want to use Chinese mirror sources for apt packages, so that I can build the Docker image faster with better network connectivity.
+
+#### Acceptance Criteria
+
+1. WHEN the USE_CHINA_MIRROR build argument is set to true THEN the Build System SHALL replace the default Debian apt sources with Chinese mirror sources (e.g., mirrors.aliyun.com or mirrors.tuna.tsinghua.edu.cn)
+2. WHEN the USE_CHINA_MIRROR build argument is not set or set to false THEN the Build System SHALL use the default Debian apt sources
+3. WHEN Chinese mirrors are enabled THEN the Build System SHALL configure mirrors for both builder and runtime stages
+

@@ -56,6 +56,22 @@
     - Document RTP port range (30000-40000) and host network mode recommendation
     - _Requirements: 4.1, 4.2, 4.3_
 
-- [x] 7. Final Checkpoint
-  - All property tests implemented in `docker/tests/test-image.sh`
-  - Tests verify binary existence, recording daemon, and non-root execution
+- [ ] 7. Add China mirror support
+  - [ ] 7.1 Add USE_CHINA_MIRROR build argument to Dockerfile
+    - Add ARG USE_CHINA_MIRROR=false in both builder and runtime stages
+    - Add conditional logic to replace apt sources with Chinese mirrors when enabled
+    - Use mirrors.aliyun.com as the default Chinese mirror
+    - _Requirements: 7.1, 7.2, 7.3_
+
+  - [ ] 7.2 Update build.sh to support China mirror option
+    - Add --china-mirror flag to build.sh
+    - Pass USE_CHINA_MIRROR build argument to docker build
+    - _Requirements: 7.1_
+
+  - [ ] 7.3 Update README.md with China mirror documentation
+    - Document how to use --china-mirror flag
+    - Document manual USE_CHINA_MIRROR build argument usage
+    - _Requirements: 7.1, 7.2_
+
+- [ ] 8. Final Checkpoint
+  - Ensure all tests pass, ask the user if questions arise.

@@ -67,6 +67,23 @@ RTPENGINE_LOG_LEVEL      # 日志级别
 RTPENGINE_EXTRA_OPTS     # 额外命令行参数
 ```
 
+### 构建参数
+
+```bash
+# Docker build arguments
+USE_CHINA_MIRROR         # 设置为 true 启用中国镜像源 (阿里云)
+```
+
+### 中国镜像源配置
+
+当 `USE_CHINA_MIRROR=true` 时，Dockerfile 将使用阿里云镜像源替换默认的 Debian 源：
+
+```
+deb https://mirrors.aliyun.com/debian/ bookworm main contrib non-free non-free-firmware
+deb https://mirrors.aliyun.com/debian/ bookworm-updates main contrib non-free non-free-firmware
+deb https://mirrors.aliyun.com/debian-security bookworm-security main contrib non-free non-free-firmware
+```
+
 ## Data Models
 
 ### 配置文件结构

@@ -1079,6 +1079,27 @@ static int __unused_pt_number(struct call_media *media, struct call_media *other
 {
 	int num = pt ? pt->payload_type : -1;
 	rtp_payload_type *pt_match;
+	bool explicit_pt = (num >= 0 && num <= 127);
+
+	// 如果指定了显式 PT 号码，优先尝试使用它
+	if (explicit_pt) {
+		pt_match = t_hash_table_lookup(media->codecs.codecs, GINT_TO_POINTER(num));
+		if (!pt_match) {
+			// PT 未被使用，检查 other_media 和 extra_cs
+			if (other_media)
+				pt_match = t_hash_table_lookup(other_media->codecs.codecs,
+						GINT_TO_POINTER(num));
+			if (!pt_match && extra_cs)
+				pt_match = t_hash_table_lookup(extra_cs->codecs,
+						GINT_TO_POINTER(num));
+		}
+		// 如果没有冲突或者是相同的 codec，使用显式指定的 PT
+		if (!pt_match || (pt && rtp_payload_type_eq_nf(pt, pt_match)))
+			return num;
+		// 与其他 codec 冲突，继续执行后续逻辑分配新的 PT
+		ilog(LOG_WARN, "显式指定的 payload type %d 与现有 codec 冲突，"
+				"将分配其他 PT 号码", num);
+	}
 
 	if (num < 0)
 		num = 96; // default first dynamic payload type number
@@ -2933,8 +2954,32 @@ struct codec_packet *codec_packet_dup(struct codec_packet *p) {
 bool codec_parse_payload_type(rtp_payload_type *pt, const str *codec_str) {
 	str codec_fmt = *codec_str;
 	str codec, parms, chans, opts, extra_opts, fmt_params, codec_opts;
+	int explicit_pt = -1;
+
 	if (!str_token_sep(&codec, &codec_fmt, '/'))
 		return false;
+
+	// 检查第一个 token 是否是数字形式的 payload type (0-127)
+	// 格式: PT/codec/clockrate/channels/... 例如 104/AMR-WB/16000/1
+	if (codec.len > 0 && codec.len <= 3) {
+		bool all_digits = true;
+		for (size_t i = 0; i < codec.len; i++) {
+			if (codec.s[i] < '0' || codec.s[i] > '9') {
+				all_digits = false;
+				break;
+			}
+		}
+		if (all_digits) {
+			int pt_num = str_to_i(&codec, -1);
+			if (pt_num >= 0 && pt_num <= 127) {
+				// 这是一个 PT 号码，获取实际的 codec 名称
+				explicit_pt = pt_num;
+				if (!str_token_sep(&codec, &codec_fmt, '/'))
+					return false;
+			}
+		}
+	}
+
 	str_token_sep(&parms, &codec_fmt, '/');
 	str_token_sep(&chans, &codec_fmt, '/');
 	str_token_sep(&opts, &codec_fmt, '/');
@@ -2950,7 +2995,7 @@ bool codec_parse_payload_type(rtp_payload_type *pt, const str *codec_str) {
 	if (clockrate && !channels)
 		channels = 1;
 
-	pt->payload_type = -1;
+	pt->payload_type = explicit_pt;
 	pt->encoding = codec;
 	pt->clock_rate = clockrate;
 	pt->channels = channels;

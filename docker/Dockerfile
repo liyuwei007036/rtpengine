@@ -19,6 +19,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     debhelper-compat \
     default-libmysqlclient-dev \
+    dpkg-dev \
     gperf \
     git \
     libavcodec-dev \
@@ -35,6 +36,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libjwt-dev \
     libmnl-dev \
     libmosquitto-dev \
+    libncurses-dev \
     libnftnl-dev \
     libopus-dev \
     libpcap0.8-dev \
@@ -46,6 +48,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libwebsockets-dev \
     libxtables-dev \
     markdown \
+    pandoc \
     pkg-config \
     zlib1g-dev \
     && rm -rf /var/lib/apt/lists/*
@@ -55,7 +58,10 @@ WORKDIR /usr/src/rtpengine
 COPY . .
 
 # 编译 rtpengine 守护进程和录音守护进程
-RUN make clean && make with_transcoding=yes
+# 跳过 kernel-module 的 clean (容器内不需要内核模块)
+RUN make -C daemon clean || true && \
+    make -C recording-daemon clean || true && \
+    make with_transcoding=yes
 
 #############################################
 # 阶段 2: 运行时
@@ -87,7 +93,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libjwt0 \
     libmnl0 \
     libmosquitto1 \
-    libmysqlclient21 \
+    libmariadb3 \
     libnftnl11 \
     libopus0 \
     libpcap0.8 \
@@ -96,7 +102,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libssl3 \
     libswresample4 \
     libsystemd0 \
-    libwebsockets19 \
+    libwebsockets17 \
     libxtables12 \
     zlib1g \
     perl \

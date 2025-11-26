@@ -4,8 +4,8 @@
 .gitreview
 .github
 
-# Documentation (保留 docker/README.md)
-docs/
+# Documentation - 保留 docs，编译 man 页面需要
+# docs/
 README.md
 
 # Build artifacts (仅排除根目录下的)
@@ -22,15 +22,15 @@ t/
 tests/
 fixtures/
 
-# Debian packaging
-debian/
+# Debian packaging - 保留 changelog，编译时需要
+# debian/
 
 # Other packaging
 el/
 pkg/
 
-# Kernel module (not needed in container)
-kernel-module/
+# Kernel module - 保留头文件，编译时需要
+# kernel-module/
 
 # Kiro specs
 .kiro/

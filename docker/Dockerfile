@@ -22,10 +22,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     dpkg-dev \
     gperf \
     git \
-    libavcodec-dev \
-    libavfilter-dev \
-    libavformat-dev \
-    libavutil-dev \
     libbcg729-dev \
     libcurl4-openssl-dev \
     libevent-dev \
@@ -43,7 +39,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpcre2-dev \
     libspandsp-dev \
     libssl-dev \
-    libswresample-dev \
     libsystemd-dev \
     libwebsockets-dev \
     libxtables-dev \
@@ -51,6 +46,22 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     pandoc \
     pkg-config \
     zlib1g-dev \
+    # AMR/AMR-WB 双向转码支持 (常用于 VoLTE/VoIP)
+    libopencore-amrnb-dev \
+    libopencore-amrwb-dev \
+    libvo-amrwbenc-dev \
+    # 安装编译FFmpeg所需的依赖
+    nasm \
+    yasm \
+    # 从源码编译FFmpeg以支持AMR编码
+    && cd /tmp \
+    && git clone --depth 1 https://git.ffmpeg.org/ffmpeg.git ffmpeg \
+    && cd ffmpeg \
+    && ./configure --prefix=/usr --enable-version3 --enable-libopencore-amrnb --enable-libopencore-amrwb --enable-libvo-amrwbenc --enable-shared --disable-static \
+    && make -j$(nproc) \
+    && make install \
+    && cd / \
+    && rm -rf /tmp/ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
 # 复制源代码
@@ -61,7 +72,7 @@ COPY . .
 # 跳过 kernel-module 的 clean (容器内不需要内核模块)
 RUN make -C daemon clean || true && \
     make -C recording-daemon clean || true && \
-    make with_transcoding=yes
+    make with_transcoding=yes with_amr=yes
 
 #############################################
 # 阶段 2: 运行时
@@ -77,10 +88,6 @@ RUN sed -i 's|deb.debian.org|mirrors.aliyun.com|g' /etc/apt/sources.list.d/debia
 # 安装运行时依赖
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
-    libavcodec59 \
-    libavfilter8 \
-    libavformat59 \
-    libavutil57 \
     libbcg729-0 \
     libcurl4 \
     libevent-2.1-7 \
@@ -100,7 +107,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpcre2-8-0 \
     libspandsp2 \
     libssl3 \
-    libswresample4 \
     libsystemd0 \
     libwebsockets17 \
     libxtables12 \
@@ -112,14 +118,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libsocket6-perl \
     libjson-perl \
     libwww-perl \
+    # AMR/AMR-WB 双向转码运行时库
+    libopencore-amrnb0 \
+    libopencore-amrwb0 \
+    libvo-amrwbenc0 \
     && rm -rf /var/lib/apt/lists/*
 
 # 创建 rtpengine 用户和组
 RUN groupadd -r rtpengine && useradd -r -g rtpengine rtpengine
 
 # 创建必要的目录
-RUN mkdir -p /etc/rtpengine /var/spool/rtpengine /var/log/rtpengine \
-    && chown -R rtpengine:rtpengine /var/spool/rtpengine /var/log/rtpengine
+RUN mkdir -p /etc/rtpengine /var/spool/rtpengine /var/log/rtpengine /run/rtpengine \
+    && chown -R rtpengine:rtpengine /var/spool/rtpengine /var/log/rtpengine /run/rtpengine
 
 # 从构建器复制二进制文件
 COPY --from=builder /usr/src/rtpengine/daemon/rtpengine /usr/bin/rtpengine
@@ -130,6 +140,15 @@ COPY --from=builder /usr/src/rtpengine/utils/rtpengine-ng-client /usr/bin/rtpeng
 # 复制 Perl 模块 (rtpengine-ctl 和 rtpengine-ng-client 依赖)
 COPY --from=builder /usr/src/rtpengine/perl/NGCP /usr/share/perl5/NGCP
 
+# 复制FFmpeg库和二进制文件
+COPY --from=builder /usr/lib/libavcodec.so* /usr/lib/
+COPY --from=builder /usr/lib/libavformat.so* /usr/lib/
+COPY --from=builder /usr/lib/libavutil.so* /usr/lib/
+COPY --from=builder /usr/lib/libavfilter.so* /usr/lib/
+COPY --from=builder /usr/lib/libswresample.so* /usr/lib/
+COPY --from=builder /usr/lib/libswscale.so* /usr/lib/
+RUN ldconfig
+
 # 复制配置文件和入口脚本
 COPY docker/rtpengine.conf /etc/rtpengine/rtpengine.conf
 COPY docker/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
@@ -138,17 +157,6 @@ RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 # 设置配置文件所有权
 RUN chown -R rtpengine:rtpengine /etc/rtpengine
 
-# 暴露端口
-# 控制协议 (ng)
-EXPOSE 22222/udp
-# CLI 管理接口
-EXPOSE 22223/tcp
-# HTTP 接口
-EXPOSE 22225/tcp
-# RTP 端口范围通常为 30000-40000，但需要使用 host 网络模式
-
-# 切换到非 root 用户
-USER rtpengine
 
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 CMD ["rtpengine"]

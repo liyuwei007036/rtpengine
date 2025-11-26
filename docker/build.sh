@@ -15,6 +15,7 @@ shift 2>/dev/null || true
 # 获取脚本目录 (Dockerfile 所在位置)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+docker stop rtpengine && docker rm rtpengine && docker rmi rtpengine:latest
 
 echo "=============================================="
 echo "构建 rtpengine Docker 镜像"
@@ -29,6 +30,7 @@ echo "开始构建..."
 START_TIME=$(date +%s)
 
 docker build \
+    --no-cache \
     -t "$IMAGE_TAG" \
     -f "$SCRIPT_DIR/Dockerfile" \
     "$@" \
